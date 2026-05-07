@@ -4,9 +4,11 @@ import com.commerce.project.model.Category;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -24,18 +26,31 @@ public class CategoryServiceImpl implements CategoryService {
         categories.add(category);
     }
     @Override
-    public ResponseEntity<String> deleteCategory(Long categoryId) {
+    public void deleteCategory(Long categoryId) {
 
         Category category = categories.stream()
                 .filter(c -> c.getCategoryId() == categoryId)
                 .findFirst()
                 .orElse(null);
-
         if (category == null) {
-            return ResponseEntity.status(404).body("Category not found");
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Category not found"
+            );
         }
-
         categories.remove(category);
-        return ResponseEntity.ok("Category with id " + categoryId + " deleted");
+    }
+
+    @Override
+    public Category updateCategory(Category category, Long categoryId) {
+
+        Category updatedCategory = categories.stream()
+                .filter(c -> c.getCategoryId() == categoryId)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        updatedCategory.setCategoryName(category.getCategoryName());
+
+        return updatedCategory;
     }
 }
