@@ -6,11 +6,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 @RestController
 @RequestMapping("/api")
@@ -33,19 +30,12 @@ public class CategoryController {
     @PutMapping("/public/categories/{categoryId}")
     public ResponseEntity<String> updateCategory(@RequestBody Category category,
                                                  @PathVariable Long categoryId){
-        try{
-            categoryService.updateCategory(category, categoryId);
-            return  ResponseEntity.status(HttpStatus.OK).body("Category"+categoryId+"updated successfully");
-        } catch (Exception e) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Category not found"
-            );
-        }
+        categoryService.updateCategory(category, categoryId);
+        return ResponseEntity.status(HttpStatus.OK).body("Category " + categoryId + " updated successfully");
     }
     @DeleteMapping("/admin/categories/{categoryId}")
     public ResponseEntity<String> deleteCategory(@PathVariable Long categoryId){
-        categoryService.deleteCategory(categoryId);
-        return  ResponseEntity.status(HttpStatus.OK).body("Category deleted successfully");
+        String status = categoryService.deleteCategory(categoryId);
+        return ResponseEntity.status(HttpStatus.OK).body(status);
     }
 }
