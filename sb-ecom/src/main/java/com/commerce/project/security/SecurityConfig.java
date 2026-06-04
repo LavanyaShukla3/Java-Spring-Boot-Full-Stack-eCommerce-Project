@@ -12,16 +12,33 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import javax.sql.DataSource;
 import org.springframework.security.web.SecurityFilterChain;
-
-
+import org.springframework.boot.security.autoconfigure.web.servlet.PathRequest;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public SecurityFilterChain h2ConsoleFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(PathRequest.toH2Console())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                );
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
 //            .httpBasic() -"Use the header" so basic auth type of authentication
 //            .sessionManagement(STATELESS)- "Don't remember me at all"
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -37,12 +54,30 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
-    @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails user1 = User.withUsername("user1").password("{noop}password1").roles("USER").build();
-        UserDetails user2 = User.withUsername("admin").password("{noop}password2").roles("ADMIN").build();
 
-        return new InMemoryUserDetailsManager(user1, user2);
+    @Bean
+    public UserDetailsService userDetailsService(DataSource dataSource) {
+        JdbcUserDetailsManager manager = new JdbcUserDetailsManager(dataSource);
+        // Create users only if they don't already exist
+        if (!manager.userExists("user1")) {
+            UserDetails user1 = User.withUsername("user1")
+                    .password(passwordEncoder().encode("password1"))
+                    .roles("USER")
+                    .build();
+            manager.createUser(user1);
+        }
+        if (!manager.userExists("admin")) {
+            UserDetails admin = User.withUsername("admin")
+                    .password(passwordEncoder().encode("password2"))
+                    .roles("ADMIN")
+                    .build();
+            manager.createUser(admin);
+        }
+        return manager;
+    }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
 
