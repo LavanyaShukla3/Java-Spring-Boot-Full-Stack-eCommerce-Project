@@ -5,6 +5,7 @@ import com.commerce.project.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,22 +19,25 @@ public class CategoryController {
         this.categoryService = categoryService;
     }
     @GetMapping("/public/categories")
-    private ResponseEntity<List<Category>>  getAllCategories(){
+    public ResponseEntity<List<Category>>  getAllCategories(){
         List<Category> categories =  categoryService.getAllCategories();
         return ResponseEntity.status(HttpStatus.OK).body(categories);
     }
     @PostMapping("/public/categories")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<String> createCategory(@Valid @RequestBody Category category){
         categoryService.createCategory(category);
         return ResponseEntity.status(HttpStatus.CREATED).body("Category created successfully");
     }
     @PutMapping("/public/categories/{categoryId}")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<String> updateCategory(@RequestBody Category category,
                                                  @PathVariable Long categoryId){
         categoryService.updateCategory(category, categoryId);
         return ResponseEntity.status(HttpStatus.OK).body("Category " + categoryId + " updated successfully");
     }
     @DeleteMapping("/admin/categories/{categoryId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteCategory(@PathVariable Long categoryId){
         String status = categoryService.deleteCategory(categoryId);
         return ResponseEntity.status(HttpStatus.OK).body(status);
