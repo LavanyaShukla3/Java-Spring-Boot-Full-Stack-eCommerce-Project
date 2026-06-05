@@ -1,5 +1,6 @@
 package com.commerce.project.security;
 
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -55,26 +56,36 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // BEAN 1: Just creates the JdbcUserDetailsManager — no DB queries here
     @Bean
     public UserDetailsService userDetailsService(DataSource dataSource) {
-        JdbcUserDetailsManager manager = new JdbcUserDetailsManager(dataSource);
-        // Create users only if they don't already exist
-        if (!manager.userExists("user1")) {
-            UserDetails user1 = User.withUsername("user1")
-                    .password(passwordEncoder().encode("password1"))
-                    .roles("USER")
-                    .build();
-            manager.createUser(user1);
-        }
-        if (!manager.userExists("admin")) {
-            UserDetails admin = User.withUsername("admin")
-                    .password(passwordEncoder().encode("password2"))
-                    .roles("ADMIN")
-                    .build();
-            manager.createUser(admin);
-        }
-        return manager;
+        return new JdbcUserDetailsManager(dataSource);
     }
+
+    // BEAN 2: Runs AFTER full startup (schema.sql has already run, tables exist)
+    @Bean
+    public CommandLineRunner initData(UserDetailsService userDetailsService) {
+        return args -> {
+            JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
+
+            if (!manager.userExists("user1")) {
+                UserDetails user1 = User.withUsername("user1")
+                        .password(passwordEncoder().encode("password1"))
+                        .roles("USER")
+                        .build();
+                manager.createUser(user1);
+            }
+
+            if (!manager.userExists("admin")) {
+                UserDetails admin = User.withUsername("admin")
+                        .password(passwordEncoder().encode("password2"))
+                        .roles("ADMIN")
+                        .build();
+                manager.createUser(admin);
+            }
+        };
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
